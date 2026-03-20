@@ -767,7 +767,9 @@ func (s *Service) getSummariesList(
 		if summaries == nil {
 			summaries = make(map[string]*session.Summary)
 		}
-		log.InfofContext(ctx, "key: %s load summaries: %v", keyStr, summaries)
+		for filterKey, summary := range summaries {
+			log.InfofContext(ctx, "key: %s filterKey: %s load summary: %v", keyStr, filterKey, summary)
+		}
 		result[i] = summaries
 	}
 
