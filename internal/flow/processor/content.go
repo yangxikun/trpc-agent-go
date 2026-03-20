@@ -307,7 +307,8 @@ func (p *ContentRequestProcessor) ProcessRequest(
 		if !skipHistory && p.AddSessionSummary && p.TimelineFilterMode == TimelineFilterAll {
 			// Fetch session summary early so we can insert it after other
 			// semi-stable system blocks (for example, preloaded memories).
-			summaryMsg, summaryUpdatedAt = p.getSessionSummaryMessage(invocation)
+			summaryMsg, summaryUpdatedAt = p.getSessionSummaryMessage(ctx, invocation)
+			log.InfofContext(ctx, "summaryMsg: %v, summaryUpdatedAt: %v", summaryMsg, summaryUpdatedAt)
 		}
 
 		// Preload memories into system prompt if configured.
@@ -401,7 +402,10 @@ func (p *ContentRequestProcessor) injectInjectedContextMessages(invocation *agen
 
 // getSessionSummaryMessage returns the current-branch session summary as a
 // system message if available and non-empty, along with its UpdatedAt timestamp.
-func (p *ContentRequestProcessor) getSessionSummaryMessage(inv *agent.Invocation) (*model.Message, time.Time) {
+func (p *ContentRequestProcessor) getSessionSummaryMessage(
+	ctx context.Context,
+	inv *agent.Invocation,
+) (*model.Message, time.Time) {
 	if inv.Session == nil {
 		return nil, time.Time{}
 	}
@@ -422,6 +426,7 @@ func (p *ContentRequestProcessor) getSessionSummaryMessage(inv *agent.Invocation
 	// Try exact match first.
 	sum := inv.Session.Summaries[filter]
 	if sum != nil && sum.Summary != "" {
+		log.InfofContext(ctx, "successfully get session summary, filter: %s", filter)
 		content := p.formatSummary(sum.Summary)
 		return &model.Message{Role: model.RoleSystem, Content: content}, sum.UpdatedAt
 	}
@@ -432,6 +437,7 @@ func (p *ContentRequestProcessor) getSessionSummaryMessage(inv *agent.Invocation
 	if p.BranchFilterMode == BranchFilterModePrefix && filter != "" {
 		summaryText, updatedAt := p.aggregatePrefixSummaries(inv.Session.Summaries, filter)
 		if summaryText != "" {
+			log.InfofContext(ctx, "successfully get session summary, prefix filter: %s", filter)
 			content := p.formatSummary(summaryText)
 			return &model.Message{Role: model.RoleSystem, Content: content}, updatedAt
 		}
